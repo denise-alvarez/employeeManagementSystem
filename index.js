@@ -1,4 +1,5 @@
 const inquirer = require("inquirer");
+const { up } = require("inquirer/lib/utils/readline");
 const db = require("./db/connection");
 
 const startMenu = {
@@ -8,15 +9,14 @@ const startMenu = {
   choices: [
     "Show All Employees",
     "Add Employee",
-    "Update Employee",
-    "Delete an Employee",
+    "Update Employee Role",
     "Add a Department",
     "Show All Departments",
     "Add a Role",
     "Show All Roles",
     "Exit",
-  ],
-};
+  ]
+}
 
 //show all employees
 
@@ -42,13 +42,12 @@ const addEmployee = () => {
     const roleChoices = results.map(role => {
       return {name: role.title, value: role.id}
     })
-    db.query(`SELECT * FROM employee`).then((esults => {
+    db.query(`SELECT * FROM employee`).then(results => {
       console.log(results);
       const managerChoices = results.map(manager => {
-        return {name: manager.first_name + " " + manager.last_name,
-          value: manager.id}
+        return  {name: manager.first_name +' '+ manager.last_name, value: manager.id}
       })
-      inquirer.Prompt = ([
+      const addEmployeePrompt = [
         {
           name: "first_name",
           message: "What is the employee's first name?"
@@ -64,57 +63,62 @@ const addEmployee = () => {
           choices: roleChoices
         },
         {
-          name: "manager",
+          name: "manager_id",
           message: "Who is this employee's manager?",
           type: "list",
           choices: managerChoices
         }
-      ])
-      .then(results => {
+      ]
+      
+      inquirer.prompt(addEmployeePrompt).then((results) => {
         console.log("RESULTS ---", results);
-        db.query('INSERT INTO employee SET ?', {first_name: results.first_name, last_name: results.last_name, role_id: results.role_id, manager_id: results.manager}).then(results => {
-          console.log("THE NEW EMPLOYEE HAS BEEN ADDED TO THE DATABASE")
-          setTimeout(start, 3000)
+        db.query("INSERT INTO employee SET ?", {first_name: results.first_name, last_name: results.last_name, role_id: results.role_id, manager_id: results.manager})
+        .then((results) => {
+          console.log("THE NEW EMPLOYEE HAS BEEN ADDED");
+          setTimeout(start, 3000);       
         })
       })
     })
   })
 }
 
+
 //Update employee
 const updateEmployee = () => {
   db.query(`SELECT * FROM employee`).then((results) => {
+    console.log(results)
     const employeeArray = results.map((employee) => {
       return {
-        name: employee.first_name + " " + employee.last_name,
+        name: employee.first_name +' '+ employee.last_name,
         value: employee.id,
       };
     });
     db.query(`SELECT * FROM role`).then((results) => {
+      console.log(results)
       const roleArray = results.map((role) => {
         return { name: role.title, value: role.id };
       });
-      inquierer
-        .prompt([
+      const updateEmployeePrompt = [
           {
             name: "selectedEmployee",
             message: "Which employee would you like to update?",
-            type: "list",
+            type: 'list',
             choices: employeeArray,
           },
           {
             name: "selectedRole",
             message: "What should employees new title be?",
-            type: "list",
+            type: 'list',
             choices: roleArray,
           },
-        ])
-        .then((results) => {
+        ]
+        inquirer.prompt(updateEmployeePrompt).then((results) => {
           console.log(results);
           db.query("UPDATE employee SET role_id =? WHERE id=?", [
             results.selectedRole,
             results.selectedEmployee,
           ]).then((results) => {
+            console.log("Employee has been updated!!")
             setTimeout(start, 3000);
           });
         });
@@ -124,12 +128,12 @@ const updateEmployee = () => {
 
 //Add a Department
 const addDepartment = () => {
-  inquirer
-    .prompt({
+  const addDepartmentPrompt = 
+      {
       name: "department_name",
       message: "What is the department name you want to add?",
-    })
-    .then((results) => {
+    }
+    inquirer.prompt(addDepartmentPrompt).then((results) => {
       console.log(results);
       db.query("INSERT INTO department SET ?", {
         name: results.department_name,
@@ -157,7 +161,7 @@ const addRole = () => {
       return {name: department.name, 
         value: department.id}
     })
-  inquirer.prompt([
+    const addRolePrompt = [
     {
       name: 'role_name',
       message: 'What role you want to add?'
@@ -172,12 +176,12 @@ const addRole = () => {
       type: 'list',
       choices: departmentChoices
     }
-  ])
-.then(results => {
+  ]
+  inquirer.prompt(addRolePrompt).then(results => {
   console.log(results)
   db.query('INSERT INTO role SET ?', {title: results.role_name, salary: results.role_salary, department_id: results.role_department}).then(results => {
-    console.log("THE ROLE HAS BEEN ADDED!!)
-    setTimeout(start, 3000)
+    console.log("THE ROLE HAS BEEN ADDED!!!");
+        setTimeout(start, 3000);
    })
   })
  })
