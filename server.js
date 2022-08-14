@@ -6,19 +6,27 @@ const startMenu = {
   message: "Hello, welcome to employee manager, what would you like to do?",
   type: "list",
   choices: [
+    "Show All Employees",
     "Add Employee",
     "Update Employee",
-    "Show All Employees",
     "Delete an Employee",
+    "Add a Department",
+    "Show All Departments",
+    "Add a Role",
+    "Show All Roles",
+    "Exit",
   ],
 };
 
+//show all employees
+
 const showAllEmployees = () => {
-  //make a call to the db, and show all employees
-  db.query(`SELECT e1.id as EMP_ID, CONCAT(e1.first_name, ' ', e1.last_name) as Name, title as role, 
-  salary, department.name as department, IFNULL(CONCAT(e2.first_name, ' ', e2.last_name), 'No Manager, Bawss Status') as Manager FROM employee e1 LEFT JOIN role 
+  db.query(
+    `SELECT e1.id as EMP_ID, CONCAT(e1.first_name, ' ', e1.last_name) as Name, title as role, 
+  salary, department.name as department, IFNULL(CONCAT(e2.first_name, ' ', e2.last_name), 'No Manager, Top Level') as Manager FROM employee e1 LEFT JOIN role 
   ON e1.role_id=role.id LEFT JOIN department ON role.department_id=department.id
-  LEFT JOIN employee e2 ON e1.manager_id=e2.id `).then((results) => {
+  LEFT JOIN employee e2 ON e1.manager_id=e2.id `
+  ).then((results) => {
     console.log("--------------  EMPLOYEES  --------------");
     console.table(results);
     console.log("--------------  EMPLOYEES  --------------");
@@ -27,76 +35,110 @@ const showAllEmployees = () => {
   });
 };
 
+//Add employee
 const addEmployee = () => {
-  //before writing query, we need inquirer to gather info on new employee
-  //we need all the current role ids, to allow user to choose a role_id that's in the role table,
-  //we need all the current emp ids, to choose a manager_id
-  db.query(`SELECT id, first_name, last_name FROM employee`).then(
-    (managers) => {
-      const managerChoices = managers.map((man) => {
-        return {
-          name: `${man.first_name} ${man.last_name}`,
-          value: man.id,
-        };
-      });
-      db.query(`SELECT id, title FROM role`).then((results) => {
-        const choices = results.map((role) => {
-          return {
-            name: role.title,
-            value: role.id,
-          };
-        });
-        //convert results to a array of choices for inquirer prompt
-        const addEmployeePrompt = [
-          {
-            name: "first_name",
-            message: "What is the employee's first name?",
-          },
-          {
-            name: "last_name",
-            message: "What is the employee's last name?",
-          },
-          {
-            name: "role_id",
-            message: "What is the employee's title?",
-            type: "list",
-            choices,
-          },
-          {
-            name: "manager_id",
-            message: "Who is this employee's manager?",
-            type: "list",
-            choices: [
-              ...managerChoices,
-              { name: "No Manager, this person is a bawss!", value: null },
-            ],
-          },
-        ];
+  db.query("SELECT * FROM employee").then(results => {
+    const managerChoices = results.map(manager => {
+      return { name: manager.first_name +' '+ manager.last_name, value: manager.id }
+    })
 
-        inquirer.prompt(addEmployeePrompt).then((results) => {
-          console.log("RESULTS --- ", results);
+    db.query("SELECT * FROM role").then(results => {
+      const roleChoices = results.map(role => {
+        return { name: role.title, value: role.id }
+      })
 
-          db.query("INSERT INTO employee SET ?", results).then(() =>
-            setTimeout(start, 3000)
-          );
-        });
-      });
-    }
-  );
-  // inquirer.prompt()
-};
+      inquirer.Prompt = ([
+        {
+          name: "first_name",
+          message: "What is the employee's first name?"
+        },
+        {
+          name: "last_name",
+          message: "What is the employee's last name?"
+        },
+        {
+          name: "role_id",
+          message: "What is the employee's title?",
+          type: "list",
+          choices: roleChoices
+        },
+        {
+          name: "manager",
+          message: "Who is this employee's manager?",
+          type: "list",
+          choices: managerChoices
+        }
+      ])
 
-function start() {
-  inquirer.prompt(startMenu).then((response) => {
+      .then(results => {
+        console.log("RESULTS --- ", results);
 
-    //based on user choice, we're going to maybe ask additional questions or do some db operation
-    switch (response.functionality) {
+        db.query("INSERT INTO employee SET ?", {first_name: results.first_name, last_name: results.last_name, role_id: results.role_id, manager_id: results.manager}).then(results => {
+          console.log("THE NEW EMPLOYEE HAS BEEN ADDED!!")
+          setTimeout(start, 3000)
+        })
+      })
+    })
+  })
+
+
+
+//Update employee
+
+const updateEmployee = () => {
+  db.query(`SELECT id * FROM employee`).then(results => {
+    const employeeArray = results.map(employee => {
+      return {
+        name: employee.first_name +' '+ employee.last_name,
+        value: employee.id
+      }})
+  db.query(`SELECT id * FROM role`).then(results => {
+    const roleArray = results.map(role => {
+      const roleArray = results.map(role => {
+        return {name: role.title, 
+        value: role.id}
+    })
+    inquierer.prompt ([
+      {
+        name: "selectedEmployee",
+        message: "Which employee would you like to update?",
+        type: "list",
+        choices: employeeArray,
+      },
+       {
+          name: "selectedRole",
+          message: "What should employees new title be?",
+          type: "list",
+          choices: roleArray,
+        }
+      ]).then(results => {
+        console.log(results)
+        db.query('UPDATE employee SET role_id =? WHERE id=?',[results.selectedRole, results.selectedEmployee]).then(results => {
+          setTimeout(start, 3000)
+        })
+      })
+    })
+  })
+}
+
+//Add a Department
+//Show All Departments
+//Add a Role
+//Show All Roles
+
+function start(){
+  inquirer.prompt(startMenu).then((answers) => {
+    switch (answers.functionality) {
       case "Show All Employees":
         return showAllEmployees();
       case "Add Employee":
         return addEmployee();
+      case "Update an employee role":
+        return updateEmployee();
+    
     }
   });
 }
+
 
 start();
