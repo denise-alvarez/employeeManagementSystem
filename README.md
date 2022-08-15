@@ -11,7 +11,7 @@ Node index.js
 ## Usage
 
 ### Walkthrough video liks
-[DEMO](Video link here)
+[DEMO](https://youtu.be/7lnB4GLMsG0)
 
 ## Links
 [Denise Alvarez GitHub Link](https://github.com/denise-alvarez) <br/>
