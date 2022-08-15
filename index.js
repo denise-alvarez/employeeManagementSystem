@@ -1,5 +1,4 @@
 const inquirer = require("inquirer");
-const { up } = require("inquirer/lib/utils/readline");
 const db = require("./db/connection");
 
 const startMenu = {
@@ -9,14 +8,14 @@ const startMenu = {
   choices: [
     "Show All Employees",
     "Add Employee",
-    "Update Employee Role",
+    "Update Employee",
     "Add a Department",
     "Show All Departments",
     "Add a Role",
     "Show All Roles",
     "Exit",
   ]
-}
+};
 
 //show all employees
 
@@ -63,11 +62,11 @@ const addEmployee = () => {
           choices: roleChoices
         },
         {
-          name: "manager_id",
+          name: "manager",
           message: "Who is this employee's manager?",
           type: "list",
           choices: managerChoices
-        }
+        },
       ]
       
       inquirer.prompt(addEmployeePrompt).then((results) => {
@@ -85,64 +84,57 @@ const addEmployee = () => {
 
 //Update employee
 const updateEmployee = () => {
-  db.query(`SELECT * FROM employee`).then((results) => {
-    console.log(results)
-    const employeeArray = results.map((employee) => {
-      return {
-        name: employee.first_name +' '+ employee.last_name,
-        value: employee.id,
-      };
-    });
-    db.query(`SELECT * FROM role`).then((results) => {
+  db.query('SELECT * FROM employee').then(results => {
+    console.log(results);
+    const employeeArray = results.map(employee => {
+      return {name: employee.first_name +' '+ employee.last_name, value: employee.id}
+    })
+    db.query('SELECT * FROM role').then(results => {
       console.log(results)
-      const roleArray = results.map((role) => {
-        return { name: role.title, value: role.id };
-      });
-      const updateEmployeePrompt = [
-          {
-            name: "selectedEmployee",
-            message: "Which employee would you like to update?",
-            type: 'list',
-            choices: employeeArray,
-          },
-          {
-            name: "selectedRole",
-            message: "What should employees new title be?",
-            type: 'list',
-            choices: roleArray,
-          },
-        ]
-        inquirer.prompt(updateEmployeePrompt).then((results) => {
-          console.log(results);
-          db.query("UPDATE employee SET role_id =? WHERE id=?", [
-            results.selectedRole,
-            results.selectedEmployee,
-          ]).then((results) => {
-            console.log("Employee has been updated!!")
-            setTimeout(start, 3000);
-          });
-        });
-    });
-  });
-};
+      const roleArray = results.map(role => {
+        return {name: role.title, value: role.id}
+      })
+      inquirer.prompt([
+        {
+          name: 'selectedEmployee',
+          message: 'Which employee would you like to update?',
+          type: 'list',
+          choices: employeeArray
+        },
+        {
+          name: 'selectedRole',
+          message: "What is the employee's new title?",
+          type: 'list',
+          choices: roleArray
+        }
+      ]).then(results => {
+        console.log(results)
+        db.query('UPDATE employee SET role_id =? WHERE id=?',[results.selectedRole, results.selectedEmployee]).then(results => {
+          console.log('UPDATED')
+          setTimeout(start, 3000)
+        })
+      })
+    })
+  })
+}
+
 
 //Add a Department
-const addDepartment = () => {
-  const addDepartmentPrompt = 
-      {
-      name: "department_name",
-      message: "What is the department name you want to add?",
-    }
-    inquirer.prompt(addDepartmentPrompt).then((results) => {
-      console.log(results);
-      db.query("INSERT INTO department SET ?", {
-        name: results.department_name,
-      }).then((results) => {
-        console.log("THE DEPARTMENT HAS BEEN ADDED");
-        setTimeout(start, 3000);
-      });
+function addDepartment() {
+  const addDepartmentPrompt = {
+    name: "department_name",
+    message: "What is the department name you want to add?",
+  };
+  inquirer.prompt(addDepartmentPrompt).then((results) => {
+    console.log(results);
+    db.query("INSERT INTO department SET ?", {
+      name: results.department_name,
+    }).then((results) => {
+      console.log("THE DEPARTMENT HAS BEEN ADDED");
+      setTimeout(start, 3000);
     });
-};
+  });
+}
 
 //Show All Departments
 const showAllDepartments = ()=> {
@@ -213,6 +205,7 @@ function start() {
         return addRole();
       case "Show All Roles":
         return showAllRoles();
+      case 'Exit':
     }
   });
 }
